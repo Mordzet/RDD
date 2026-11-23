@@ -12,8 +12,11 @@ from pyspark.sql import SparkSession
 from pyspark import StorageLevel
 
 spark = SparkSession.builder \
-    .master("local[*]") \
+    .master("local[2]") \
     .appName("RDD_Practicas_y_Proyecto") \
+    .config("spark.python.worker.reuse", "true") \
+    .config("spark.sql.execution.pyspark.udf.faulthandler.enabled", "true") \
+    .config("spark.python.worker.faulthandler.enabled", "true") \
     .getOrCreate()
 sc = spark.sparkContext
 sc.setLogLevel("ERROR")
@@ -147,7 +150,7 @@ print("\n--- EJERCICIO 7 ---")
 print(out_ej7)
 outputs["ej7"] = out_ej7
 
-rdd_reutilizado = sc.parallelize(range(1, 100001), 4).map(lambda x: x * 2)
+rdd_reutilizado = sc.parallelize(range(1, 100001), 2).map(lambda x: x * 2)
 rdd_reutilizado.cache()
 
 t0 = time.time()
@@ -155,8 +158,8 @@ c1 = rdd_reutilizado.count()
 t1 = time.time()
 c2 = rdd_reutilizado.reduce(lambda a, b: a + b)
 c3 = rdd_reutilizado.filter(lambda x: x % 1000 == 0).count()
-c4 = rdd_reutilizado.first()
-c5 = rdd_reutilizado.take(5)
+c4 = rdd_reutilizado.max()
+c5 = rdd_reutilizado.min()
 t2 = time.time()
 
 nivel_storage = rdd_reutilizado.getStorageLevel()
@@ -171,8 +174,8 @@ out_ej8 = (
     f"  - Cálculo 1 (count - materializa cache): {c1} elementos ({t1 - t0:.4f} s)\n"
     f"  - Cálculo 2 (suma total desde cache): {c2}\n"
     f"  - Cálculo 3 (múltiplos de 1000 desde cache): {c3}\n"
-    f"  - Cálculo 4 (primer elemento desde cache): {c4}\n"
-    f"  - Cálculo 5 (primeros 5 elementos desde cache): {c5}\n"
+    f"  - Cálculo 4 (valor máximo desde cache): {c4}\n"
+    f"  - Cálculo 5 (valor mínimo desde cache): {c5}\n"
     f"  - Tiempo total de los cálculos 2 al 5 leyendo desde RAM: {t2 - t1:.4f} s"
 )
 print("\n--- EJERCICIO 8 ---")
