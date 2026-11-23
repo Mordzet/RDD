@@ -3,9 +3,7 @@ import sys
 import json
 import time
 import shutil
-from datetime import datetime
 
-# Configurar variables de entorno para PySpark en Windows
 os.environ["JAVA_HOME"] = r"C:\Users\saidg\.jdks\temurin-17"
 os.environ["PYSPARK_PYTHON"] = sys.executable
 os.environ["PYSPARK_DRIVER_PYTHON"] = sys.executable
@@ -13,7 +11,6 @@ os.environ["PYSPARK_DRIVER_PYTHON"] = sys.executable
 from pyspark.sql import SparkSession
 from pyspark import StorageLevel
 
-print("Iniciando SparkSession...")
 spark = SparkSession.builder \
     .master("local[*]") \
     .appName("RDD_Practicas_y_Proyecto") \
@@ -23,10 +20,6 @@ sc.setLogLevel("ERROR")
 
 outputs = {}
 
-# ==============================================================================
-# EJERCICIO 1: Word Count Básico
-# Cuenta cuántas veces aparece cada palabra en: texto = ["hola mundo", "hola spark", "mundo spark"]
-# ==============================================================================
 texto = ["hola mundo", "hola spark", "mundo spark"]
 rdd_texto = sc.parallelize(texto)
 conteo_palabras = rdd_texto.flatMap(lambda linea: linea.split(" ")) \
@@ -42,13 +35,6 @@ print("\n--- EJERCICIO 1 ---")
 print(out_ej1)
 outputs["ej1"] = out_ej1
 
-# ==============================================================================
-# EJERCICIO 2: Análisis de Ventas
-# Datos: [("Madrid", 100), ("Barcelona", 200), ("Madrid", 50)]
-# 1. Suma las ventas por ciudad.
-# 2. Filtra ciudades con ventas > 100.
-# 3. Ordena de mayor a menor.
-# ==============================================================================
 ventas_ej2 = [("Madrid", 100), ("Barcelona", 200), ("Madrid", 50)]
 rdd_ventas2 = sc.parallelize(ventas_ej2)
 
@@ -65,10 +51,6 @@ print("\n--- EJERCICIO 2 ---")
 print(out_ej2)
 outputs["ej2"] = out_ej2
 
-# ==============================================================================
-# EJERCICIO 3: Filtrado y Transformación
-# Teniendo precios en USD: [10, 25, 40, 5, 100, 15], filtra los >= 20 y conviértelos a EUR (x0.9).
-# ==============================================================================
 precios_usd = [10, 25, 40, 5, 100, 15]
 rdd_precios = sc.parallelize(precios_usd)
 
@@ -84,10 +66,6 @@ print("\n--- EJERCICIO 3 ---")
 print(out_ej3)
 outputs["ej3"] = out_ej3
 
-# ==============================================================================
-# EJERCICIO 4: Procesamiento de CSV
-# Divide, aplana y cuenta productos únicos de: ["Leche,Huevos,Pan", "Manzanas,Peras", "Leche,Chocolate"]
-# ==============================================================================
 csv_lineas = ["Leche,Huevos,Pan", "Manzanas,Peras", "Leche,Chocolate"]
 rdd_csv = sc.parallelize(csv_lineas)
 
@@ -104,20 +82,11 @@ print("\n--- EJERCICIO 4 ---")
 print(out_ej4)
 outputs["ej4"] = out_ej4
 
-# ==============================================================================
-# EJERCICIO 5: Análisis de Logs
-# Archivo simulado ip,hora,metodo,url:
-# 1. Carga el archivo.
-# 2. Cuenta cuántas peticiones ha hecho cada IP (map a par clave-valor + reduceByKey).
-# 3. Filtra las IPs que han hecho más de 1 petición.
-# 4. Guarda el resultado en un archivo de texto.
-# ==============================================================================
 rdd_logs = sc.textFile("logs.txt")
 peticiones_por_ip = rdd_logs.map(lambda linea: (linea.split(",")[0], 1)) \
                             .reduceByKey(lambda a, b: a + b)
 ips_frecuentes = peticiones_por_ip.filter(lambda x: x[1] > 1)
 
-# Guardar resultado en archivo de texto (compatible con Windows local sin winutils.exe y mediante RDD)
 output_dir_logs = "output_logs_ip"
 if os.path.exists(output_dir_logs):
     shutil.rmtree(output_dir_logs)
@@ -146,19 +115,9 @@ print("\n--- EJERCICIO 5 ---")
 print(out_ej5)
 outputs["ej5"] = out_ej5
 
-# ==============================================================================
-# EJERCICIO 6: Pipeline y Shuffle
-# Dada una lista de ventas: ("Madrid", 100), ("Barcelona", 200), ("Madrid", 50), ("Valencia", 50)
-# 1. Filtra las ventas menores de 60.
-# 2. Suma las ventas por ciudad.
-# 3. Ordena el resultado por facturación (de mayor a menor).
-# Pista: filter -> reduceByKey -> sortBy
-# ==============================================================================
 ventas_ej6 = [("Madrid", 100), ("Barcelona", 200), ("Madrid", 50), ("Valencia", 50)]
 rdd_ventas6 = sc.parallelize(ventas_ej6)
 
-# "Filtra las ventas menores de 60" -> descartamos las menores de 60 (nos quedamos con >= 60),
-# y también mostramos qué daría si se seleccionaran exclusivamente las < 60 para total claridad.
 pipeline_mayores_60 = rdd_ventas6.filter(lambda x: x[1] >= 60) \
                                  .reduceByKey(lambda a, b: a + b) \
                                  .sortBy(lambda x: x[1], ascending=False)
@@ -172,12 +131,6 @@ print("\n--- EJERCICIO 6 ---")
 print(out_ej6)
 outputs["ej6"] = out_ej6
 
-# ==============================================================================
-# EJERCICIO 7: Diferencia Map vs FlatMap
-# Tienes un RDD con frases: ["Hola mundo", "Apache Spark es guay"]
-# 1. Aplica map con split(" "). ¿Qué estructura obtienes?
-# 2. Aplica flatMap con split(" "). ¿Qué diferencia ves en el collect()?
-# ==============================================================================
 frases_ej7 = ["Hola mundo", "Apache Spark es guay"]
 rdd_frases7 = sc.parallelize(frases_ej7)
 
@@ -194,22 +147,16 @@ print("\n--- EJERCICIO 7 ---")
 print(out_ej7)
 outputs["ej7"] = out_ej7
 
-# ==============================================================================
-# EJERCICIO 8: Optimización
-# Tienes un RDD que usas 5 veces en diferentes cálculos. ¿Qué debes hacer para optimizar?
-# ==============================================================================
 rdd_reutilizado = sc.parallelize(range(1, 100001), 4).map(lambda x: x * 2)
-
-# Aplicamos cache() / persist() antes de las 5 acciones
-rdd_reutilizado.cache()  # Equivalente a persist(StorageLevel.MEMORY_ONLY) o usar MEMORY_AND_DISK
+rdd_reutilizado.cache()
 
 t0 = time.time()
-c1 = rdd_reutilizado.count()                                  # Uso 1 (calcula y guarda en RAM)
+c1 = rdd_reutilizado.count()
 t1 = time.time()
-c2 = rdd_reutilizado.reduce(lambda a, b: a + b)               # Uso 2 (lee desde RAM)
-c3 = rdd_reutilizado.filter(lambda x: x % 1000 == 0).count()  # Uso 3 (lee desde RAM)
-c4 = rdd_reutilizado.first()                                  # Uso 4 (lee desde RAM)
-c5 = rdd_reutilizado.take(5)                                  # Uso 5 (lee desde RAM)
+c2 = rdd_reutilizado.reduce(lambda a, b: a + b)
+c3 = rdd_reutilizado.filter(lambda x: x % 1000 == 0).count()
+c4 = rdd_reutilizado.first()
+c5 = rdd_reutilizado.take(5)
 t2 = time.time()
 
 nivel_storage = rdd_reutilizado.getStorageLevel()
@@ -232,18 +179,7 @@ print("\n--- EJERCICIO 8 ---")
 print(out_ej8)
 outputs["ej8"] = out_ej8
 
-# ==============================================================================
-# PROYECTO PRÁCTICO: Análisis de Calificaciones
-# Escenario: eres el administrador de un instituto. Tienes las notas de tres asignaturas
-# en archivos de texto separados y sucios. Necesitas unificar los datos y generar un
-# informe estadístico usando RDDs.
-# Archivos:
-#   notas_mates.txt: Angel,6 | Maria,2 | Ramon,4.5
-#   notas_fisica.txt: Angel,9 | Maria,3
-#   notas_ingles.txt: Angel,4 | Maria,6
-# ==============================================================================
 def parsear_linea_nota(linea):
-    """Parsea y limpia una línea 'nombre,nota', ignorando líneas vacías o corruptas."""
     try:
         linea = linea.strip()
         if not linea or "," not in linea:
@@ -263,24 +199,19 @@ rdd_mates = rdd_mates_raw.map(parsear_linea_nota).filter(lambda x: x is not None
 rdd_fisica = rdd_fisica_raw.map(parsear_linea_nota).filter(lambda x: x is not None).cache()
 rdd_ingles = rdd_ingles_raw.map(parsear_linea_nota).filter(lambda x: x is not None).cache()
 
-# 1. Unificar todas las calificaciones (union) y cachear porque se usará múltiples veces
 rdd_todas_notas = rdd_mates.union(rdd_fisica).union(rdd_ingles).cache()
 
-# 2. Promedio de nota por alumno (usando aggregateByKey o mapValues + reduceByKey)
 promedio_por_alumno = rdd_todas_notas.mapValues(lambda nota: (nota, 1)) \
     .reduceByKey(lambda a, b: (a[0] + b[0], a[1] + b[1])) \
     .mapValues(lambda x: round(x[0] / x[1], 2)) \
     .sortBy(lambda x: x[1], ascending=False)
 
-# 3. Nota máxima y mínima por alumno (reduceByKey)
 nota_max_alumno = rdd_todas_notas.reduceByKey(lambda a, b: a if a > b else b)
 nota_min_alumno = rdd_todas_notas.reduceByKey(lambda a, b: a if a < b else b)
 
-# 4. Aprobados (promedio >= 5.0) y Suspensos (promedio < 5.0)
 aprobados_promedio = promedio_por_alumno.filter(lambda x: x[1] >= 5.0)
 suspensos_promedio = promedio_por_alumno.filter(lambda x: x[1] < 5.0)
 
-# 5. Operaciones de conjuntos entre asignaturas (distinct, intersection, subtract)
 alumnos_mates = rdd_mates.map(lambda x: x[0])
 alumnos_fisica = rdd_fisica.map(lambda x: x[0])
 alumnos_ingles = rdd_ingles.map(lambda x: x[0])
@@ -289,7 +220,6 @@ todos_alumnos_unicos = alumnos_mates.union(alumnos_fisica).union(alumnos_ingles)
 alumnos_en_las_tres = alumnos_mates.intersection(alumnos_fisica).intersection(alumnos_ingles)
 alumnos_solo_mates = alumnos_mates.subtract(alumnos_fisica).subtract(alumnos_ingles)
 
-# 6. Estadísticas globales del instituto
 total_calificaciones = rdd_todas_notas.count()
 suma_global = rdd_todas_notas.map(lambda x: x[1]).reduce(lambda a, b: a + b)
 media_global = round(suma_global / total_calificaciones, 2)
@@ -331,4 +261,3 @@ with open("outputs_ejecucion.json", "w", encoding="utf-8") as f:
     json.dump(outputs, f, ensure_ascii=False, indent=2)
 
 spark.stop()
-print("\nEjecución de PySpark finalizada correctamente.")
