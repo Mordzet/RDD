@@ -260,4 +260,11 @@ outputs["proyecto"] = out_proyecto
 with open("outputs_ejecucion.json", "w", encoding="utf-8") as f:
     json.dump(outputs, f, ensure_ascii=False, indent=2)
 
-spark.stop()
+print("\nSpark UI activa en: http://localhost:4040")
+print("Presiona Ctrl+C en la terminal cuando quieras cerrar Spark.")
+try:
+    while True:
+        time.sleep(1)
+except KeyboardInterrupt:
+    spark.stop()
+
