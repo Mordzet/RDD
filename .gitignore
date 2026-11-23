@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+outputs_ejecucion.json
+generar_entregables.py
+output_logs_ip/*.crc
